@@ -1,0 +1,7 @@
+/target
+.vscode
+.idea
+.zed
+.DS_Store
+Thumbs.db
+desktop.ini
