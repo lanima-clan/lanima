@@ -3,6 +3,10 @@ use std::rc::Rc;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum OpKind {
     Const,
+    Add,
+    Sub,
+    Mul,
+    Div,
     Pop,
 }
 
@@ -50,9 +54,23 @@ mod tests {
 
     #[test]
     fn test_fmt_instructions() {
-        let instructions = &[make(OpKind::Const, &[0]), make(OpKind::Pop, &[])];
+        let instructions = &[
+            make(OpKind::Const, &[0]),
+            make(OpKind::Pop, &[]),
+            make(OpKind::Add, &[]),
+            make(OpKind::Sub, &[]),
+            make(OpKind::Div, &[]),
+            make(OpKind::Mul, &[]),
+        ];
 
-        let expected = "Const 0\nPop";
+        let expected = [
+            "Const 0",
+            "Pop",
+            "Add",
+            "Sub",
+            "Div",
+            "Mul"
+        ].join("\n");
 
         assert_eq!(fmt_instructions(instructions), expected);
     }
