@@ -1,3 +1,4 @@
+pub mod call;
 pub mod err;
 pub mod test;
 
@@ -9,10 +10,11 @@ pub const STACK_SIZE: usize = 2048;
 pub const GLOBALS_SIZE: usize = 65535;
 
 use crate::{
+    gc,
     object::{
         Object,
         func::Func,
-        object_operators::{ObjAdd, ObjDiv, ObjMul, ObjSub},
+        object_operators::{ObjAdd, ObjDiv, ObjEq, ObjGt, ObjMul, ObjNotEq, ObjSub},
     },
     vm::opcode::{Op, OpKind},
 };
@@ -24,12 +26,11 @@ pub struct Frame {
     pub func: Func,
     pub ip: isize,
     pub locals: Vec<Object>,
+    pub base_ptr: usize,
 }
 
 #[derive(Debug, Clone)]
 pub struct Vm {
-    constants: Vec<Object>,
-
     stack: Vec<Object>,
     sp: usize,
 
@@ -41,11 +42,10 @@ impl Vm {
     pub fn new(instructions: &[Op], constants: Vec<Object>) -> Self {
         let main_func = Func {
             instructions: instructions.into(),
+            constants,
         };
 
         Self {
-            constants,
-
             stack: vec![Object::Null; STACK_SIZE],
             sp: 0,
 
@@ -53,6 +53,7 @@ impl Vm {
                 func: main_func,
                 ip: -1,
                 locals: vec![],
+                base_ptr: 0,
             }],
             frame_index: 1,
         }
@@ -61,7 +62,17 @@ impl Vm {
 
 impl Vm {
     fn obj_operator(&mut self, op: OpKind) -> VmResult<()> {
-        if ![OpKind::Add, OpKind::Div, OpKind::Sub, OpKind::Mul].contains(&op) {
+        if ![
+            OpKind::Add,
+            OpKind::Div,
+            OpKind::Sub,
+            OpKind::Mul,
+            OpKind::Eq,
+            OpKind::NotEq,
+            OpKind::Gt,
+        ]
+        .contains(&op)
+        {
             return Ok(());
         }
 
@@ -78,12 +89,15 @@ impl Vm {
             Object::obj_sub,
             Object::obj_mul,
             Object::obj_div,
+            Object::obj_eq,
+            Object::obj_not_eq,
+            Object::obj_gt,
         ];
 
         let op_func = op_functions[op as usize - 1];
         let o = op_func(&left_obj, &right_obj).map_or_else(
             || {
-                VmResult::Err(format!(
+                Err(format!(
                     "invaild operator to {} and {}",
                     left_obj.type_name(),
                     right_obj.type_name(),
@@ -108,16 +122,70 @@ impl Vm {
 
             let ip = self.current_frame_ref().ip as usize;
             let op = &self.current_frame_ref().func.instructions[ip];
+            let constants = &self.current_frame_ref().func.constants;
 
             match op.kind {
                 OpKind::Const => {
-                    self.push(self.constants[op.operands[0] as usize].clone())?;
+                    self.push(constants[op.operands[0] as usize].clone())?;
+                }
+
+                OpKind::CurrentFunc => {
+                    self.push(Object::Func(gc!(self.current_frame_ref().func.clone())))?
+                }
+
+                OpKind::Call => self.call_func(op.operands[0])?,
+
+                OpKind::ReturnValue => {
+                    let ret_value = self
+                        .pop()
+                        .map_or_else(|| Err(NO_OBJECT_HERE), |it| Ok(it))?;
+
+                    let frame = self
+                        .pop_frame()
+                        .map_or_else(|| Err("return outside function"), |it| Ok(it))?;
+
+                    self.sp = frame.base_ptr;
+
+                    self.push(ret_value)?;
+                }
+
+                OpKind::Return => {
+                    let frame = self
+                        .pop_frame()
+                        .map_or_else(|| Err("return outside function"), |it| Ok(it))?;
+
+                    self.sp = frame.base_ptr;
+
+                    self.push(Object::Null)?;
+                }
+
+                OpKind::Jump => {
+                    self.current_frame().ip = op.operands[0] as isize;
+                }
+
+                OpKind::JumpNotTruthy => {
+                    let target_ip = op.operands[0] as isize;
+
+                    let cond_obj = self
+                        .pop()
+                        .map_or_else(|| VmResult::Err(NO_OBJECT_HERE.to_owned()), |it| Ok(it))?;
+
+                    if !cond_obj.is_truthy() {
+                        self.current_frame().ip = target_ip;
+                    }
+                }
+
+                OpKind::GetLocal => {
+                    self.push(self.current_frame_ref().locals[op.operands[0] as usize].clone())?
                 }
 
                 OpKind::Add => self.obj_operator(op.kind)?,
                 OpKind::Sub => self.obj_operator(op.kind)?,
                 OpKind::Mul => self.obj_operator(op.kind)?,
                 OpKind::Div => self.obj_operator(op.kind)?,
+                OpKind::Eq => self.obj_operator(op.kind)?,
+                OpKind::NotEq => self.obj_operator(op.kind)?,
+                OpKind::Gt => self.obj_operator(op.kind)?,
 
                 OpKind::Pop => {
                     if self.sp != 0 {
@@ -167,6 +235,33 @@ impl Vm {
         let result = &self.stack[self.sp - 1];
 
         self.sp -= 1;
+
+        Some(result.clone())
+    }
+
+    #[inline(always)]
+    pub fn push_frame(&mut self, frame: Frame) -> VmResult<()> {
+        if self.frames.len() <= self.frame_index {
+            self.frames.push(frame);
+        } else {
+            self.frames[self.frame_index] = frame;
+        }
+
+        self.frame_index += 1;
+
+        Ok(())
+    }
+
+    #[inline(always)]
+    pub fn pop_frame(&mut self) -> Option<Frame> {
+        // 你不能把主函数 pop 出来
+        if self.frame_index <= 1 {
+            return None;
+        }
+
+        let result = &self.frames[self.frame_index - 1];
+
+        self.frame_index -= 1;
 
         Some(result.clone())
     }
