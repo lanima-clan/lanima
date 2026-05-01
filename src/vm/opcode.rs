@@ -7,6 +7,16 @@ pub enum OpKind {
     Sub,
     Mul,
     Div,
+    Eq,
+    NotEq,
+    Gt,
+    Call,
+    Return,
+    ReturnValue,
+    JumpNotTruthy,
+    Jump,
+    GetLocal,
+    CurrentFunc,
     Pop,
 }
 
@@ -61,6 +71,15 @@ mod tests {
             make(OpKind::Sub, &[]),
             make(OpKind::Div, &[]),
             make(OpKind::Mul, &[]),
+            make(OpKind::ReturnValue, &[]),
+            make(OpKind::Return, &[]),
+            make(OpKind::Jump, &[]),
+            make(OpKind::JumpNotTruthy, &[]),
+            make(OpKind::GetLocal, &[]),
+            make(OpKind::Eq, &[]),
+            make(OpKind::NotEq, &[]),
+            make(OpKind::Gt, &[]),
+            make(OpKind::CurrentFunc, &[]),
         ];
 
         let expected = [
@@ -69,7 +88,16 @@ mod tests {
             "Add",
             "Sub",
             "Div",
-            "Mul"
+            "Mul",
+            "ReturnValue",
+            "Return",
+            "Jump",
+            "JumpNotTruthy",
+            "GetLocal",
+            "Eq",
+            "NotEq",
+            "Gt",
+            "CurrentFunc"
         ].join("\n");
 
         assert_eq!(fmt_instructions(instructions), expected);
