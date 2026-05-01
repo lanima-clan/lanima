@@ -2,7 +2,10 @@ use std::cmp::Ordering;
 
 use bigdecimal::BigDecimal;
 
-use crate::{gc, object::Object};
+use crate::{
+    gc,
+    object::{Object, native_bool_to_obj},
+};
 
 // 基本定义:
 // 顺序枚举 加减乘除比较 Trait
@@ -51,6 +54,24 @@ pub trait ObjDiv {
     fn obj_div(&self, right_obj: &Object) -> Self::Output;
 }
 
+pub trait ObjEq {
+    type Output;
+
+    fn obj_eq(&self, right_obj: &Object) -> Self::Output;
+}
+
+pub trait ObjNotEq {
+    type Output;
+
+    fn obj_not_eq(&self, right_obj: &Object) -> Self::Output;
+}
+
+pub trait ObjGt {
+    type Output;
+
+    fn obj_gt(&self, right_obj: &Object) -> Self::Output;
+}
+
 pub trait ObjCmp {
     type Output: Into<Option<ObjOrdering>>;
 
@@ -65,6 +86,9 @@ impl ObjAdd for Object {
     fn obj_add(&self, right_obj: &Object) -> Self::Output {
         match (self, right_obj) {
             (Object::I64(l), Object::I64(r)) => Some(Object::I64(l + r)),
+            (Object::Decimal(l), Object::Decimal(r)) => {
+                Some(Object::Decimal(gc!(&*l.borrow() * &*r.borrow())))
+            }
             _ => None,
         }
     }
@@ -76,6 +100,9 @@ impl ObjSub for Object {
     fn obj_sub(&self, right_obj: &Object) -> Self::Output {
         match (self, right_obj) {
             (Object::I64(l), Object::I64(r)) => Some(Object::I64(l - r)),
+            (Object::Decimal(l), Object::Decimal(r)) => {
+                Some(Object::Decimal(gc!(&*l.borrow() * &*r.borrow())))
+            }
             _ => None,
         }
     }
@@ -87,6 +114,9 @@ impl ObjMul for Object {
     fn obj_mul(&self, right_obj: &Object) -> Self::Output {
         match (self, right_obj) {
             (Object::I64(l), Object::I64(r)) => Some(Object::I64(l * r)),
+            (Object::Decimal(l), Object::Decimal(r)) => {
+                Some(Object::Decimal(gc!(&*l.borrow() * &*r.borrow())))
+            }
             _ => None,
         }
     }
@@ -106,6 +136,50 @@ impl ObjDiv for Object {
                     None
                 }
             }
+            (Object::Decimal(l), Object::Decimal(r)) => {
+                if *r.borrow() != 0 {
+                    Some(Object::Decimal(gc!(&*l.borrow() / &*r.borrow())))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+}
+
+impl ObjEq for Object {
+    type Output = Option<Object>;
+
+    fn obj_eq(&self, right_obj: &Object) -> Self::Output {
+        match (self, right_obj) {
+            (Self::Bool(l), Self::Bool(r)) => Some(native_bool_to_obj(l == r)),
+            (Self::I64(l), Self::I64(r)) => Some(native_bool_to_obj(l == r)),
+            (Self::Decimal(l), Self::Decimal(r)) => Some(native_bool_to_obj(l == r)),
+            (Self::Func(l), Self::Func(r)) => Some(native_bool_to_obj(l == r)),
+            (Self::Vec(l), Self::Vec(r)) => Some(native_bool_to_obj(l == r)),
+            _ => Some(native_bool_to_obj(false)),
+        }
+    }
+}
+
+impl ObjNotEq for Object {
+    type Output = Option<Object>;
+
+    fn obj_not_eq(&self, right_obj: &Object) -> Self::Output {
+        Some(native_bool_to_obj(
+            self.obj_eq(right_obj).map_or(false, |it| it.is_truthy()),
+        ))
+    }
+}
+
+impl ObjGt for Object {
+    type Output = Option<Object>;
+
+    fn obj_gt(&self, right_obj: &Object) -> Self::Output {
+        match (self, right_obj) {
+            (Object::I64(l), Object::I64(r)) => Some(native_bool_to_obj(l > r)),
+            (Object::Decimal(l), Object::Decimal(r)) => Some(native_bool_to_obj(l > r)),
             _ => None,
         }
     }
@@ -138,6 +212,9 @@ impl ObjCmp for Object {
     }
 }
 
-pub trait AllOperator: ObjAdd + ObjSub + ObjMul + ObjDiv + ObjCmp {}
+pub trait AllOperator:
+    ObjAdd + ObjSub + ObjMul + ObjDiv + ObjEq + ObjNotEq + ObjGt + ObjCmp
+{
+}
 
 impl AllOperator for Object {}
