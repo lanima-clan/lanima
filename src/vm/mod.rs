@@ -1,5 +1,6 @@
 pub mod call;
 pub mod err;
+pub mod native_functions;
 pub mod test;
 
 const NO_OBJECT_HERE: &str = "no object here";
@@ -16,7 +17,10 @@ use crate::{
         func::Func,
         object_operators::{ObjAdd, ObjDiv, ObjEq, ObjGt, ObjMul, ObjNotEq, ObjSub},
     },
-    vm::opcode::{Op, OpKind},
+    vm::{
+        native_functions::{BUILTIN_INDEX_TO_NAME, BUILTIN_MAP},
+        opcode::{Op, OpKind},
+    },
 };
 
 pub mod opcode;
@@ -177,6 +181,10 @@ impl Vm {
 
                 OpKind::GetLocal => {
                     self.push(self.current_frame_ref().locals[op.operands[0] as usize].clone())?
+                }
+
+                OpKind::GetBuiltin => {
+                    self.push(BUILTIN_MAP[BUILTIN_INDEX_TO_NAME[op.operands[0] as usize]].clone())?
                 }
 
                 OpKind::Add => self.obj_operator(op.kind)?,
