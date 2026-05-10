@@ -47,6 +47,20 @@ mod tests {
     }
 
     #[test]
+    fn test_print_function() {
+        let instructions = vec![
+            make(OpKind::GetBuiltin, &[0]),
+            make(OpKind::Const, &[0]),
+            make(OpKind::Call, &[1]),
+            make(OpKind::Pop, &[]),
+        ];
+
+        let constants = vec![Object::I64(42)];
+
+        test_expected(&instructions, constants, Object::Null);
+    }
+
+    #[test]
     fn test_fib_function() {
         let instructions = vec![
             make(OpKind::Const, &[0]), // func fib
