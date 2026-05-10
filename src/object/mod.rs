@@ -15,6 +15,7 @@ use crate::object::func::{Func, NativeFunc};
 pub enum Object {
     I64(i64),
     Bool(bool),
+    String(Gc<String>),
     Decimal(Gc<BigDecimal>),
     Func(Gc<Func>),
     NativeFunc(NativeFunc),
@@ -27,6 +28,7 @@ impl Object {
         match self {
             Object::I64(_) => "i64".to_owned(),
             Object::Decimal(_) => "float".to_owned(),
+            Object::String(_) => "String".to_owned(),
             Object::Func(_) => "Function".to_owned(),
             Object::NativeFunc(_) => "NativeFunction".to_owned(),
             Object::Vec(_) => "Vec".to_owned(),
@@ -46,6 +48,7 @@ impl Object {
                 !func.borrow().instructions.is_empty() && !func.borrow().constants.is_empty()
             }
             Object::Vec(v) => !v.borrow().is_empty(),
+            Object::String(it) => !it.borrow().is_empty(),
             Object::Null => false,
             Object::NativeFunc(_it) => true,
         }
@@ -55,6 +58,7 @@ impl Object {
 impl Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Object::String(it) => write!(f, "{}", it.borrow()),
             Object::Bool(it) => write!(f, "{it}"),
             Object::I64(it) => write!(f, "{it}"),
             Object::Decimal(it) => write!(f, "{}", it.borrow()),

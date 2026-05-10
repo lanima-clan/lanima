@@ -86,6 +86,9 @@ impl ObjAdd for Object {
     fn obj_add(&self, right_obj: &Object) -> Self::Output {
         match (self, right_obj) {
             (Object::I64(l), Object::I64(r)) => Some(Object::I64(l + r)),
+            (Object::String(l), Object::String(r)) => {
+                Some(Object::String(gc!(l.borrow().clone() + &*r.borrow())))
+            }
             (Object::Decimal(l), Object::Decimal(r)) => {
                 Some(Object::Decimal(gc!(&*l.borrow() * &*r.borrow())))
             }
@@ -154,6 +157,7 @@ impl ObjEq for Object {
     fn obj_eq(&self, right_obj: &Object) -> Self::Output {
         match (self, right_obj) {
             (Self::Bool(l), Self::Bool(r)) => Some(native_bool_to_obj(l == r)),
+            (Self::String(l), Self::String(r)) => Some(native_bool_to_obj(l == r)),
             (Self::I64(l), Self::I64(r)) => Some(native_bool_to_obj(l == r)),
             (Self::Decimal(l), Self::Decimal(r)) => Some(native_bool_to_obj(l == r)),
             (Self::Func(l), Self::Func(r)) => Some(native_bool_to_obj(l == r)),
@@ -192,6 +196,8 @@ impl ObjCmp for Object {
     fn obj_cmp(&self, right_obj: &Object) -> Self::Output {
         match (self, right_obj) {
             (Object::I64(l), Object::I64(r)) => Some(l.cmp(r).into()),
+            (Object::Decimal(l), Object::Decimal(r)) => Some(l.cmp(r).into()),
+            (Object::String(l), Object::String(r)) => Some(l.cmp(r).into()),
             (Object::Func(l), Object::Func(r)) => {
                 if l == r {
                     Some(ObjOrdering::Equal)
