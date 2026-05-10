@@ -16,6 +16,7 @@ pub enum OpKind {
     JumpNotTruthy,
     Jump,
     GetLocal,
+    GetBuiltin,
     CurrentFunc,
     Pop,
 }
@@ -80,6 +81,8 @@ mod tests {
             make(OpKind::NotEq, &[]),
             make(OpKind::Gt, &[]),
             make(OpKind::CurrentFunc, &[]),
+            make(OpKind::GetBuiltin, &[]),
+            make(OpKind::Call, &[]),
         ];
 
         let expected = [
@@ -97,7 +100,9 @@ mod tests {
             "Eq",
             "NotEq",
             "Gt",
-            "CurrentFunc"
+            "CurrentFunc",
+            "GetBuiltin",
+            "Call",
         ].join("\n");
 
         assert_eq!(fmt_instructions(instructions), expected);
