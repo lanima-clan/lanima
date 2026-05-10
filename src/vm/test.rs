@@ -150,6 +150,12 @@ mod tests {
                 ],
                 Object::Decimal(gc!(BigDecimal::from(2))),
             ),
+            (
+                vec![
+                    make(OpKind::Null, &[]),
+                ],
+                Object::Null,
+            ),
         ];
 
         for (ins, expected) in test_cases {
