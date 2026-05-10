@@ -157,6 +157,7 @@ impl ObjEq for Object {
             (Self::I64(l), Self::I64(r)) => Some(native_bool_to_obj(l == r)),
             (Self::Decimal(l), Self::Decimal(r)) => Some(native_bool_to_obj(l == r)),
             (Self::Func(l), Self::Func(r)) => Some(native_bool_to_obj(l == r)),
+            (Self::NativeFunc(l), Self::NativeFunc(r)) => Some(native_bool_to_obj(l == r)),
             (Self::Vec(l), Self::Vec(r)) => Some(native_bool_to_obj(l == r)),
             _ => Some(native_bool_to_obj(false)),
         }
