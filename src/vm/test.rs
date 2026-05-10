@@ -75,11 +75,9 @@ mod tests {
             make(OpKind::GetLocal, &[0]),
             make(OpKind::Gt, &[]),
             make(OpKind::JumpNotTruthy, &[7]),
-
             // 3 > n 的情况
             make(OpKind::Const, &[1]), // 3 > n: 1
             make(OpKind::ReturnValue, &[]),
-
             // fib(n - 1) + fib(n - 2)
             make(OpKind::CurrentFunc, &[]),
             make(OpKind::GetLocal, &[1]),
@@ -150,11 +148,16 @@ mod tests {
                 ],
                 Object::Decimal(gc!(BigDecimal::from(2))),
             ),
+            (vec![make(OpKind::Null, &[])], Object::Null),
             (
                 vec![
+                    make(OpKind::Const, &[0]),
+                    make(OpKind::Const, &[1]),
                     make(OpKind::Null, &[]),
+                    make(OpKind::BuildArray, &[3]),
+                    make(OpKind::Pop, &[]),
                 ],
-                Object::Null,
+                Object::Vec(gc!(vec![Object::I64(10), Object::I64(5), Object::Null])),
             ),
         ];
 

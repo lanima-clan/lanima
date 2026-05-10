@@ -133,6 +133,16 @@ impl Vm {
                     self.push(constants[op.operands[0] as usize].clone())?;
                 }
 
+                OpKind::BuildArray => {
+                    let arr_len = op.operands[0] as usize;
+
+                    let v = self.stack[arr_len - self.sp..self.sp].to_vec();
+
+                    self.sp -= arr_len;
+
+                    self.push(Object::Vec(gc!(v)))?;
+                }
+
                 OpKind::Null => self.push(Object::Null)?,
 
                 OpKind::CurrentFunc => {
