@@ -1,4 +1,7 @@
-use crate::{object::Object, vm::{Frame, Vm, VmResult}};
+use crate::{
+    object::Object,
+    vm::{Frame, Vm, VmResult},
+};
 
 impl Vm {
     #[inline(always)]
@@ -6,18 +9,24 @@ impl Vm {
         let base_ptr = self.sp - arg_count as usize - 1;
         let func = &self.stack[base_ptr];
 
-        let Object::Func(func) = func else {
-            return Err("calling on uncallable".to_owned());
-        };
+        if let Object::Func(func) = func {
+            let new_frame = Frame {
+                func: func.borrow().clone(),
+                ip: -1,
+                locals: self.stack[base_ptr + 1..self.sp].to_vec(),
+                base_ptr,
+            };
 
-        let new_frame = Frame {
-            func: func.borrow().clone(),
-            ip: -1,
-            locals: self.stack[base_ptr + 1..self.sp].to_vec(),
-            base_ptr
-        };
+            self.push_frame(new_frame)?;
+        } else if let Object::NativeFunc(func) = func {
+            let result = (func.0)(self, self.stack[base_ptr + 1..self.sp].to_vec())?;
 
-        self.push_frame(new_frame)?;
+            self.sp = base_ptr;
+
+            self.push(result.unwrap_or(Object::Null))?;
+        } else {
+            return Err(format!("calling on uncallable {}", func.type_name()));
+        };
 
         Ok(())
     }
