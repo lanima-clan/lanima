@@ -133,6 +133,8 @@ impl Vm {
                     self.push(constants[op.operands[0] as usize].clone())?;
                 }
 
+                OpKind::Null => self.push(Object::Null)?,
+
                 OpKind::CurrentFunc => {
                     self.push(Object::Func(gc!(self.current_frame_ref().func.clone())))?
                 }

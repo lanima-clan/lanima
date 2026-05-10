@@ -18,6 +18,7 @@ pub enum OpKind {
     GetLocal,
     GetBuiltin,
     CurrentFunc,
+    Null,
     Pop,
 }
 
@@ -83,6 +84,7 @@ mod tests {
             make(OpKind::CurrentFunc, &[]),
             make(OpKind::GetBuiltin, &[]),
             make(OpKind::Call, &[]),
+            make(OpKind::Null, &[]),
         ];
 
         let expected = [
@@ -103,6 +105,7 @@ mod tests {
             "CurrentFunc",
             "GetBuiltin",
             "Call",
+            "Null",
         ].join("\n");
 
         assert_eq!(fmt_instructions(instructions), expected);
